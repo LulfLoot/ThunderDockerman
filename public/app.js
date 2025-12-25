@@ -94,7 +94,7 @@ function renderModGrid(mods) {
             <div class="mod-header">
               <img class="mod-icon" src="${pkg.icon || ''}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23252532%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22 font-size=%2240%22>📦</text></svg>'">
               <div class="mod-info">
-                <div class="mod-name">${pkg.name}</div>
+                <a href="${pkg.packageUrl}" target="_blank" rel="noopener" class="mod-name">${pkg.name}</a>
                 <div class="mod-owner">by ${pkg.owner}</div>
                 <span class="mod-version">v${pkg.latestVersion}</span>
               </div>

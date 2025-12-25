@@ -56,6 +56,7 @@ async function getPackages(communityId) {
     name: pkg.name,
     fullName: pkg.full_name,
     owner: pkg.owner,
+    packageUrl: pkg.package_url,
     description: pkg.versions[0]?.description || '',
     icon: pkg.versions[0]?.icon || '',
     latestVersion: pkg.versions[0]?.version_number || '',

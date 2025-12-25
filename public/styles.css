@@ -256,6 +256,13 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
+  display: block;
+  transition: var(--transition);
+}
+
+a.mod-name:hover {
+  color: var(--accent-hover);
 }
 
 .mod-owner {
