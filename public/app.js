@@ -13,6 +13,12 @@ const installedCountEl = document.getElementById('installed-count');
 const installedBadgeEl = document.getElementById('installed-badge');
 const refreshBtn = document.getElementById('refresh-btn');
 const restartServerBtn = document.getElementById('restart-server-btn');
+const consoleBtn = document.getElementById('console-btn');
+const consoleModal = document.getElementById('console-modal');
+const modalClose = document.getElementById('modal-close');
+const consoleOutput = document.getElementById('console-output');
+const refreshLogsBtn = document.getElementById('refresh-logs-btn');
+const serverStatusEl = document.getElementById('server-status');
 
 // API Functions
 async function fetchCommunities() {
@@ -53,6 +59,16 @@ async function uninstallMod(fullName) {
 
 async function restartServer() {
   const res = await fetch('/api/restart-server', { method: 'POST' });
+  return res.json();
+}
+
+async function fetchServerStatus() {
+  const res = await fetch('/api/server-status');
+  return res.json();
+}
+
+async function fetchServerLogs() {
+  const res = await fetch('/api/server-logs');
   return res.json();
 }
 
@@ -286,8 +302,45 @@ async function init() {
     `;
     
     await refreshInstalled();
+    await refreshServerStatus();
   } catch (e) {
     showToast('Failed to initialize', 'error');
+  }
+}
+
+// Server Status
+async function refreshServerStatus() {
+  try {
+    const status = await fetchServerStatus();
+    const dot = serverStatusEl.querySelector('.status-dot');
+    const text = serverStatusEl.querySelector('.status-text');
+    
+    dot.className = 'status-dot ' + (status.running ? 'running' : 'stopped');
+    text.textContent = `Server: ${status.status}`;
+  } catch (e) {
+    // Server status unavailable
+  }
+}
+
+// Console Modal
+async function openConsole() {
+  consoleModal.classList.add('open');
+  consoleOutput.textContent = 'Loading logs...';
+  await refreshLogs();
+}
+
+function closeConsole() {
+  consoleModal.classList.remove('open');
+}
+
+async function refreshLogs() {
+  try {
+    const data = await fetchServerLogs();
+    consoleOutput.textContent = data.logs || 'No logs available';
+    // Scroll to bottom
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+  } catch (e) {
+    consoleOutput.textContent = 'Failed to load logs: ' + e.message;
   }
 }
 
@@ -295,5 +348,14 @@ async function init() {
 communitySelect.addEventListener('change', handleCommunityChange);
 refreshBtn.addEventListener('click', handleCommunityChange);
 restartServerBtn.addEventListener('click', handleRestartServer);
+consoleBtn.addEventListener('click', openConsole);
+modalClose.addEventListener('click', closeConsole);
+refreshLogsBtn.addEventListener('click', refreshLogs);
+consoleModal.addEventListener('click', (e) => {
+  if (e.target === consoleModal) closeConsole();
+});
+
+// Refresh server status periodically
+setInterval(refreshServerStatus, 30000);
 
 init();

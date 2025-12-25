@@ -73,14 +73,34 @@
           </div>
         </div>
 
-        <button
-          class="refresh-btn"
-          id="restart-server-btn"
-          style="margin-top: 16px; width: 100%"
-        >
-          🔄 Restart Server
-        </button>
+        <!-- Server Controls -->
+        <div class="server-controls">
+          <div class="server-status" id="server-status">
+            <span class="status-dot"></span>
+            <span class="status-text">Server: Unknown</span>
+          </div>
+          <button class="console-btn" id="console-btn">📋 View Console</button>
+          <button class="refresh-btn" id="restart-server-btn" style="width: 100%">
+            🔄 Restart Server
+          </button>
+        </div>
       </aside>
+    </div>
+
+    <!-- Console Modal -->
+    <div class="modal" id="console-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Server Console</h3>
+          <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <pre id="console-output">Loading logs...</pre>
+        </div>
+        <div class="modal-footer">
+          <button class="refresh-btn" id="refresh-logs-btn">↻ Refresh</button>
+        </div>
+      </div>
     </div>
 
     <!-- Toast Container -->

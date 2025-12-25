@@ -128,6 +128,66 @@ app.post('/api/restart-server', async (req, res) => {
   }
 });
 
+/**
+ * Get server container status
+ */
+app.get('/api/server-status', async (req, res) => {
+  const containerName = process.env.RESTART_CONTAINER;
+  if (!containerName) {
+    return res.status(400).json({ error: 'RESTART_CONTAINER not configured' });
+  }
+
+  try {
+    const Docker = require('dockerode');
+    const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    const container = docker.getContainer(containerName);
+    const info = await container.inspect();
+    
+    res.json({
+      name: containerName,
+      status: info.State.Status,
+      running: info.State.Running,
+      startedAt: info.State.StartedAt
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * Get server container logs
+ */
+app.get('/api/server-logs', async (req, res) => {
+  const containerName = process.env.RESTART_CONTAINER;
+  if (!containerName) {
+    return res.status(400).json({ error: 'RESTART_CONTAINER not configured' });
+  }
+
+  try {
+    const Docker = require('dockerode');
+    const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    const container = docker.getContainer(containerName);
+    
+    const logs = await container.logs({
+      stdout: true,
+      stderr: true,
+      tail: 200,
+      timestamps: true
+    });
+    
+    // Convert buffer to string and clean up Docker stream headers
+    const logString = logs.toString('utf-8')
+      .split('\n')
+      .map(line => line.slice(8)) // Remove Docker stream header bytes
+      .filter(line => line.trim())
+      .join('\n');
+    
+    res.json({ logs: logString });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Thunder Dockman running on http://0.0.0.0:${PORT}`);
