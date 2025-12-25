@@ -19,10 +19,10 @@ services:
       - AUTO_UPDATE=1
     restart: unless-stopped
 
-  # Thunderstore Web Mod Manager
-  mod-manager:
+  # Thunder Dockman - Web-based mod manager
+  thunder-dockman:
     build: .
-    container_name: mod-manager
+    container_name: thunder-dockman
     ports:
       - "9876:9876"
     volumes:

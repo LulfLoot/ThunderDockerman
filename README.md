@@ -22,11 +22,11 @@ Use with your existing game server:
 
 ```bash
 docker run -d \
-  --name thunderdock \
+  --name thunder-dockman \
   -p 9876:9876 \
   -v /path/to/your/bepinex/plugins:/mods \
-  -v thunderdock-data:/data \
-  ghcr.io/YOUR_USERNAME/thunderdock:latest
+  -v thunder-dockman-data:/data \
+  thunder-dockman:latest
 ```
 
 Then open **http://localhost:9876** to manage mods.
@@ -36,8 +36,8 @@ Then open **http://localhost:9876** to manage mods.
 Clone the repo and use the included docker-compose:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/thunderdock.git
-cd thunderdock
+git clone https://github.com/YOUR_USERNAME/thunder-dockman.git
+cd thunder-dockman
 
 # Edit docker-compose.yml to configure your server
 docker compose up -d
@@ -58,13 +58,13 @@ To allow Thunder Dockman to restart your game server after installing mods:
 
 ```bash
 docker run -d \
-  --name thunderdock \
+  --name thunder-dockman \
   -p 9876:9876 \
   -v /path/to/bepinex/plugins:/mods \
-  -v thunderdock-data:/data \
+  -v thunder-dockman-data:/data \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e RESTART_CONTAINER=your-game-server-container \
-  ghcr.io/YOUR_USERNAME/thunderdock:latest
+  thunder-dockman:latest
 ```
 
 ## Supported Games
