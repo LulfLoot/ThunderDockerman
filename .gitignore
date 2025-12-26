@@ -11,3 +11,4 @@ mod-manager-data/
 .DS_Store
 Thumbs.db
 DEPLOYMENT.md
+automation.md

@@ -22,10 +22,10 @@ services:
       - BACKUP_ON_STOP=1            # Forces a backup if you manually stop it
     restart: unless-stopped
 
-  # Thunder Dockman - Web-based mod manager
-  thunder-dockman:
+  # ThunderModMan - Web-based mod manager
+  thundermodman:
     build: .
-    container_name: thunder-dockman
+    container_name: thundermodman
     ports:
       - "9876:9876"
     volumes:

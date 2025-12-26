@@ -1,4 +1,4 @@
-# Thunderstore Web Mod Manager - Architecture Options
+# ThunderModMan - Architecture Options
 
 This document outlines two architectural approaches for building a web-based mod manager for game servers.
 
@@ -63,8 +63,8 @@ services:
       - WORLD_NAME=MyWorld
       - SERVER_PASS=secret
 
-  mod-manager:
-    image: thunderstore-web-manager # Custom image we build
+  thundermodman:
+    image: thundermodman # Custom image we build
     ports:
       - "8080:8080"
     volumes:

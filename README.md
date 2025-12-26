@@ -1,4 +1,4 @@
-# Thunder Dockman
+# ThunderModMan
 
 A lightweight, web-based mod manager for game servers. Browse and install mods from [Thunderstore](https://thunderstore.io) directly through your browser.
 
@@ -22,11 +22,11 @@ Use with your existing game server:
 
 ```bash
 docker run -d \
-  --name thunder-dockman \
+  --name thundermodman \
   -p 9876:9876 \
   -v /path/to/your/bepinex/plugins:/mods \
-  -v thunder-dockman-data:/data \
-  thunder-dockman:latest
+  -v thundermodman-data:/data \
+  thundermodman:latest
 ```
 
 Then open **http://localhost:9876** to manage mods.
@@ -36,8 +36,8 @@ Then open **http://localhost:9876** to manage mods.
 Clone the repo and use the included docker-compose:
 
 ```bash
-git clone https://github.com/<username>/thunder-dockman.git
-cd thunder-dockman
+git clone https://github.com/<username>/thundermodman.git
+cd thundermodman
 
 # Edit docker-compose.yml to configure your server
 docker compose up -d
@@ -54,17 +54,17 @@ docker compose up -d
 
 ### Enabling Server Restart
 
-To allow Thunder Dockman to restart your game server after installing mods:
+To allow ThunderModMan to restart your game server after installing mods:
 
 ```bash
 docker run -d \
-  --name thunder-dockman \
+  --name thundermodman \
   -p 9876:9876 \
   -v /path/to/bepinex/plugins:/mods \
-  -v thunder-dockman-data:/data \
+  -v thundermodman-data:/data \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e RESTART_CONTAINER=your-game-server-container \
-  thunder-dockman:latest
+  thundermodman:latest
 ```
 
 ## Supported Games

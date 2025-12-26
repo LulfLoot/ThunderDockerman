@@ -1,5 +1,5 @@
 {
-  "name": "thunder-dockman",
+  "name": "thundermodman",
   "version": "1.0.0",
   "description": "Web-based Thunderstore mod manager for game servers",
   "main": "src/server.js",

@@ -201,6 +201,6 @@ app.get('/api/server-logs', async (req, res) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Thunder Dockman running on http://0.0.0.0:${PORT}`);
+  console.log(`ThunderModMan running on http://0.0.0.0:${PORT}`);
   console.log(`Mods directory: ${mods.MODS_DIR}`);
 });
