@@ -7,7 +7,7 @@ A lightweight, web-based mod manager for game servers. Browse and install mods f
 
 ## Features
 
-- 🎮 **Multi-game support** – Valheim, Lethal Company, Risk of Rain 2, GTFO, and more
+- 🎮 **Valheim Dedicated Support** – Optimized for Valheim Docker servers (also supports Lethal Company, RoR2, etc.)
 - 🔍 **Browse & search** – Find mods directly from Thunderstore
 - ⚡ **One-click install** – Automatic download and extraction to your server
 - 📦 **Dependency handling** – Installs required dependencies automatically
@@ -71,7 +71,7 @@ docker run -d \
 
 Any game supported by Thunderstore with BepInEx mods:
 
-- Valheim
+- **Valheim** (Primary Priority)
 - Lethal Company
 - Risk of Rain 2
 - Content Warning

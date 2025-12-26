@@ -17,7 +17,7 @@ const consoleBtn = document.getElementById('console-btn');
 const consoleModal = document.getElementById('console-modal');
 const modalClose = document.getElementById('modal-close');
 const consoleOutput = document.getElementById('console-output');
-const refreshLogsBtn = document.getElementById('refresh-logs-btn');
+// Removed: const refreshLogsBtn = document.getElementById('refresh-logs-btn');
 const serverStatusEl = document.getElementById('server-status');
 const sortSelect = document.getElementById('sort-select');
 const categoryFilters = document.getElementById('category-filters');
@@ -340,6 +340,13 @@ async function init() {
       ${communities.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
     `;
     
+    // Default to Valheim if available
+    const valheimOption = Array.from(communitySelect.options).find(opt => opt.value === 'valheim');
+    if (valheimOption) {
+      communitySelect.value = 'valheim';
+      handleCommunityChange();
+    }
+    
     await refreshInstalled();
     await refreshServerStatus();
   } catch (e) {
@@ -361,27 +368,66 @@ async function refreshServerStatus() {
   }
 }
 
+
+// Console Logic
+let consolePollInterval;
+let isUserScrolledUp = false;
+
 // Console Modal
 async function openConsole() {
   consoleModal.classList.add('open');
   consoleOutput.textContent = 'Loading logs...';
+  
+  // Reset scroll state on open
+  isUserScrolledUp = false;
+  
   await refreshLogs();
+  
+  // Start polling
+  if (consolePollInterval) clearInterval(consolePollInterval);
+  consolePollInterval = setInterval(refreshLogs, 2000);
 }
 
 function closeConsole() {
   consoleModal.classList.remove('open');
+  if (consolePollInterval) {
+    clearInterval(consolePollInterval);
+    consolePollInterval = null;
+  }
 }
 
 async function refreshLogs() {
   try {
     const data = await fetchServerLogs();
+    
+    // Check if content changed to avoid unnecessary DOM updates/jank
+    // (Optional optimization, but simple replacement is fine for now)
     consoleOutput.textContent = data.logs || 'No logs available';
-    // Scroll to bottom
-    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    
+    // Auto-scroll if user hasn't scrolled up
+    if (!isUserScrolledUp) {
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
   } catch (e) {
     consoleOutput.textContent = 'Failed to load logs: ' + e.message;
   }
 }
+
+// Scroll detection
+consoleOutput.addEventListener('scroll', () => {
+  const scrollPos = consoleOutput.scrollTop + consoleOutput.clientHeight;
+  const scrollHeight = consoleOutput.scrollHeight;
+  
+  // If user is near bottom (within 50px), we consider them "at bottom"
+  const isAtBottom = scrollHeight - scrollPos < 50;
+  
+  if (isAtBottom) {
+    isUserScrolledUp = false;
+  } else {
+    isUserScrolledUp = true;
+  }
+});
+
 
 // Event Listeners
 communitySelect.addEventListener('change', handleCommunityChange);
@@ -389,7 +435,7 @@ refreshBtn.addEventListener('click', handleCommunityChange);
 restartServerBtn.addEventListener('click', handleRestartServer);
 consoleBtn.addEventListener('click', openConsole);
 modalClose.addEventListener('click', closeConsole);
-refreshLogsBtn.addEventListener('click', refreshLogs);
+// Removed: refreshLogsBtn.addEventListener('click', refreshLogs);
 consoleModal.addEventListener('click', (e) => {
   if (e.target === consoleModal) closeConsole();
 });
