@@ -372,6 +372,7 @@ async function refreshServerStatus() {
 // Console Logic
 let consolePollInterval;
 let isUserScrolledUp = false;
+const consoleScrollContainer = document.querySelector('.modal-body');
 
 // Console Modal
 async function openConsole() {
@@ -401,22 +402,24 @@ async function refreshLogs() {
     const data = await fetchServerLogs();
     
     // Check if content changed to avoid unnecessary DOM updates/jank
-    // (Optional optimization, but simple replacement is fine for now)
-    consoleOutput.textContent = data.logs || 'No logs available';
-    
-    // Auto-scroll if user hasn't scrolled up
-    if (!isUserScrolledUp) {
-      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    if (consoleOutput.textContent !== data.logs) {
+      consoleOutput.textContent = data.logs || 'No logs available';
+      
+      // Auto-scroll if user hasn't scrolled up
+      // We perform this check AFTER content update to ensure new scrollHeight is used
+      if (!isUserScrolledUp) {
+        consoleScrollContainer.scrollTop = consoleScrollContainer.scrollHeight;
+      }
     }
   } catch (e) {
     consoleOutput.textContent = 'Failed to load logs: ' + e.message;
   }
 }
 
-// Scroll detection
-consoleOutput.addEventListener('scroll', () => {
-  const scrollPos = consoleOutput.scrollTop + consoleOutput.clientHeight;
-  const scrollHeight = consoleOutput.scrollHeight;
+// Scroll detection on the container, not the output element
+consoleScrollContainer.addEventListener('scroll', () => {
+  const scrollPos = consoleScrollContainer.scrollTop + consoleScrollContainer.clientHeight;
+  const scrollHeight = consoleScrollContainer.scrollHeight;
   
   // If user is near bottom (within 50px), we consider them "at bottom"
   const isAtBottom = scrollHeight - scrollPos < 50;
