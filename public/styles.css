@@ -123,8 +123,7 @@ body {
 }
 
 .app.nav-collapsed .logo-text {
-  opacity: 0;
-  width: 0;
+  display: none;
 }
 
 .logo-icon {
@@ -140,8 +139,7 @@ body {
 }
 
 .app.nav-collapsed .nav-sidebar {
-  padding: 20px 8px;
-  align-items: center;
+  padding: 20px 8px; /* 8px padding + element internal padding centers content in 64px width */
 }
 
 /* === Navigation Tabs === */
@@ -159,6 +157,7 @@ body {
   padding: 12px 14px;
   background: transparent;
   border: none;
+  border-left: 3px solid transparent; /* Reserve space for active border */
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-size: 0.95rem;
@@ -217,21 +216,26 @@ body {
 }
 
 .app.nav-collapsed .nav-tab {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  justify-content: center;
+  padding: 12px; /* 12px padded tab + 8px padded sidebar = 20px offset. Icon center (12px) = 32px. Perfect center. */
   position: relative;
-  border-left: none;
+  border-left: 3px solid transparent; /* Keep border to prevent jump */
 }
 
 .app.nav-collapsed .nav-tab.active {
-  border-left: none;
-  border-bottom: 3px solid var(--accent);
+  border-left: 3px solid var(--accent); 
 }
 
 .app.nav-collapsed .logo {
-  justify-content: center;
+  /* No special centering rules manually. 
+     Expanded: 6px padding.
+     Collapsed: 8px sidebar padding + 6px logo padding = 14px offset.
+     Icon (36px) center is 18px. Total 32px center. Perfect. 
+  */
+  gap: 0;
+}
+
+.app.nav-collapsed .logo-icon {
+  margin: 0;
 }
 
 .app.nav-collapsed .logo-icon {
