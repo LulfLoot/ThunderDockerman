@@ -239,6 +239,236 @@ app.get('/api/server-logs', async (req, res) => {
   }
 });
 
+// Auto-Stop Configuration
+let autoStopConfig = {
+  enabled: false,
+  timeoutMinutes: 15,
+  lastActivity: Date.now(),
+  idleSince: null
+};
+
+// Monitoring Loop
+const MONITOR_INTERVAL = 60 * 1000; // 1 minute
+let lastNetworkStats = { rx: 0, tx: 0 };
+
+setInterval(async () => {
+  if (!autoStopConfig.enabled) return;
+
+  const containerName = process.env.RESTART_CONTAINER;
+  if (!containerName) return;
+
+  try {
+    const Docker = require('dockerode');
+    const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    const container = docker.getContainer(containerName);
+    
+    // Check if running
+    const info = await container.inspect();
+    if (!info.State.Running) {
+      autoStopConfig.idleSince = null;
+      return;
+    }
+
+    // Get Stats
+    const stats = await container.stats({ stream: false });
+    
+    // Calculate Network Activity
+    // Sum up rx_bytes and tx_bytes across all networks
+    let currentRx = 0;
+    let currentTx = 0;
+    
+    if (stats.networks) {
+      Object.values(stats.networks).forEach(net => {
+        currentRx += net.rx_bytes;
+        currentTx += net.tx_bytes;
+      });
+    }
+
+    // Check for activity (threshold: 1KB change per minute)
+    const delta = (currentRx - lastNetworkStats.rx) + (currentTx - lastNetworkStats.tx);
+    lastNetworkStats = { rx: currentRx, tx: currentTx };
+    
+    // If delta is huge, it might be a restart or first run, ignore
+    if (delta < 0) return; 
+
+    // Threshold: 5KB per minute (very low traffic = idle)
+    // Active players usually generate continuous traffic
+    const IS_IDLE = delta < 5000;
+
+    if (IS_IDLE) {
+      if (!autoStopConfig.idleSince) {
+        autoStopConfig.idleSince = Date.now();
+      }
+      
+      const idleMinutes = (Date.now() - autoStopConfig.idleSince) / 1000 / 60;
+      console.log(`[Auto-Stop] Server idle for ${idleMinutes.toFixed(1)}m (Delta: ${delta} bytes)`);
+
+      if (idleMinutes >= autoStopConfig.timeoutMinutes) {
+        console.log('[Auto-Stop] Timeout reached. Stopping server...');
+        await container.stop();
+        autoStopConfig.idleSince = null; // Reset
+      }
+    } else {
+      // Reset idle timer
+      if (autoStopConfig.idleSince) {
+        console.log(`[Auto-Stop] Activity detected (Delta: ${delta} bytes). Timer reset.`);
+      }
+      autoStopConfig.idleSince = null;
+    }
+
+  } catch (e) {
+    console.error('[Auto-Stop] Monitoring error:', e.message);
+  }
+}, MONITOR_INTERVAL);
+
+// ... existing endpoints ...
+
+/**
+ * Get Auto-Stop Settings
+ */
+app.get('/api/settings/auto-stop', (req, res) => {
+  res.json({
+    enabled: autoStopConfig.enabled,
+    timeoutMinutes: autoStopConfig.timeoutMinutes,
+    idleMinutes: autoStopConfig.idleSince ? (Date.now() - autoStopConfig.idleSince) / 1000 / 60 : 0
+  });
+});
+
+/**
+ * Update Auto-Stop Settings
+ */
+app.post('/api/settings/auto-stop', (req, res) => {
+  const { enabled, timeoutMinutes } = req.body;
+  
+  if (typeof enabled === 'boolean') autoStopConfig.enabled = enabled;
+  if (typeof timeoutMinutes === 'number') autoStopConfig.timeoutMinutes = timeoutMinutes;
+  
+  // Reset idle timer on config change
+  autoStopConfig.idleSince = null;
+  
+  res.json({ success: true, config: autoStopConfig });
+});
+
+
+// ... Auto-Stop Settings Endpoints ...
+
+// === Backup System ===
+const fs = require('fs');
+const { exec } = require('child_process');
+
+const BACKUP_DIR = path.join(__dirname, '../backups');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../valheim-data');
+
+// Ensure backup dir exists
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+}
+
+/**
+ * List Backups
+ */
+app.get('/api/backups', (req, res) => {
+  try {
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.endsWith('.zip'))
+      .map(f => {
+        const stats = fs.statSync(path.join(BACKUP_DIR, f));
+        return {
+          filename: f,
+          size: stats.size,
+          created: stats.mtime
+        };
+      })
+      .sort((a, b) => b.created - a.created); // Newest first
+
+    res.json(files);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * Create Backup
+ */
+app.post('/api/backups/create', (req, res) => {
+  // Filename: backup-YYYY-MM-DD-HH-MM-SS.zip
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const filename = `backup-${timestamp}.zip`;
+  const filepath = path.join(BACKUP_DIR, filename);
+  
+  // Check if source exists
+  if (!fs.existsSync(DATA_DIR)) {
+    return res.status(404).json({ error: `Source directory not found: ${DATA_DIR}` });
+  }
+
+  // ZIP command
+  // cd DATA_DIR && zip -r filepath .
+  // We cd to avoid including full path structure
+  const cmd = `cd "${DATA_DIR}" && zip -r "${filepath}"  . -x "*.old"`;
+
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error('[Backup] Error:', stderr);
+      return res.status(500).json({ error: 'Backup failed', details: stderr });
+    }
+    
+    res.json({ success: true, filename, message: 'Backup created successfully' });
+  });
+});
+
+/**
+ * Restore Backup
+ */
+app.post('/api/backups/restore', (req, res) => {
+  const { filename } = req.body;
+  if (!filename) return res.status(400).json({ error: 'Filename required' });
+  
+  const filepath = path.join(BACKUP_DIR, filename);
+  if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'Backup file not found' });
+
+  // UNZIP command
+  // unzip -o filepath -d DATA_DIR
+  const cmd = `unzip -o "${filepath}" -d "${DATA_DIR}"`;
+  
+  // Create verify Data Dir exists (it should, but strictly)
+  if (!fs.existsSync(DATA_DIR)) {
+     fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.error('[Restore] Error:', stderr);
+      return res.status(500).json({ error: 'Restore failed', details: stderr });
+    }
+    
+    res.json({ success: true, message: `Restored ${filename}` });
+  });
+});
+
+/**
+ * Delete Backup
+ */
+app.delete('/api/backups/:filename', (req, res) => {
+  const { filename } = req.params;
+  const filepath = path.join(BACKUP_DIR, filename);
+  
+  // Prevent directory traversal
+  if (filename.includes('..') || filename.includes('/')) {
+      return res.status(400).json({ error: 'Invalid filename' });
+  }
+
+  try {
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
+      res.json({ success: true, message: 'Backup deleted' });
+    } else {
+      res.status(404).json({ error: 'File not found' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`ThunderModMan running on http://0.0.0.0:${PORT}`);

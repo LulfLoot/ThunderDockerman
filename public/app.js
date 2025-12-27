@@ -561,6 +561,7 @@ function stopInlineConsolePoll() {
 async function refreshInlineConsoleLogs() {
   try {
     const data = await fetchServerLogs();
+    refreshAutoStopStatus(); // Update settings/idle status
     
     if (inlineConsoleOutput.textContent !== data.logs) {
       inlineConsoleOutput.textContent = data.logs || 'No logs available';
@@ -707,3 +708,181 @@ mobileOverlay.addEventListener('click', closeMobileMenu);
 setInterval(refreshServerStatus, 30000);
 
 init();
+
+// Auto-Stop Logic
+const autoStopToggle = document.getElementById('auto-stop-toggle');
+const autoStopTimeout = document.getElementById('auto-stop-timeout');
+const autoStopStatus = document.getElementById('auto-stop-status');
+
+async function setupAutoStop() {
+  if (!autoStopToggle || !autoStopTimeout) return;
+
+  // Add listeners
+  autoStopToggle.addEventListener('change', saveAutoStopSettings);
+  autoStopTimeout.addEventListener('change', saveAutoStopSettings);
+
+  // Initial fetch
+  await refreshAutoStopStatus();
+}
+
+async function saveAutoStopSettings() {
+  const settings = {
+    enabled: autoStopToggle.checked,
+    timeoutMinutes: parseInt(autoStopTimeout.value)
+  };
+
+  try {
+    await fetch('/api/settings/auto-stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    // Refresh to confirm sync and update status text
+    refreshAutoStopStatus();
+  } catch (e) {
+    showToast('Failed to save settings', 'error');
+  }
+}
+
+async function refreshAutoStopStatus() {
+  try {
+    const res = await fetch('/api/settings/auto-stop');
+    const data = await res.json();
+
+    // Update UI controls (only if not focused to avoid interruption)
+    if (document.activeElement !== autoStopTimeout) {
+      if (autoStopToggle) autoStopToggle.checked = data.enabled;
+      if (autoStopTimeout) autoStopTimeout.value = data.timeoutMinutes;
+    }
+    
+    // Update status text
+    if (autoStopStatus) {
+      if (data.enabled) {
+        if (data.idleMinutes > 0) {
+          autoStopStatus.textContent = `Idle: ${data.idleMinutes.toFixed(1)}m / ${data.timeoutMinutes}m`;
+          autoStopStatus.style.color = 'var(--accent)';
+        } else {
+          autoStopStatus.textContent = 'Active (Monitoring)';
+          autoStopStatus.style.color = 'var(--success)';
+        }
+      } else {
+        autoStopStatus.textContent = 'Disabled';
+        autoStopStatus.style.color = 'var(--text-muted)';
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch auto-stop settings', e);
+  }
+}
+
+// Initialize Auto-Stop
+setupAutoStop();
+
+// === World Backup Logic ===
+const createBackupBtn = document.getElementById('create-backup-btn');
+const backupList = document.getElementById('backup-list');
+
+function setupBackups() {
+  if (createBackupBtn) {
+    createBackupBtn.addEventListener('click', createBackup);
+  }
+  refreshBackups();
+}
+
+async function refreshBackups() {
+  if (!backupList) return;
+  
+  try {
+    const res = await fetch('/api/backups');
+    const backups = await res.json();
+    
+    if (backups.length === 0) {
+      backupList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem; padding: 8px;">No backups found.</div>';
+      return;
+    }
+
+    backupList.innerHTML = backups.map(b => {
+      const date = new Date(b.created).toLocaleString();
+      const sizeStr = (b.size / 1024 / 1024).toFixed(2) + ' MB';
+      
+      return `
+        <div class="backup-item">
+          <div class="backup-info">
+            <span class="backup-date">${b.filename}</span>
+            <span class="backup-size">${date} • ${sizeStr}</span>
+          </div>
+          <div class="backup-actions">
+            <button class="backup-btn restore" onclick="restoreBackup('${b.filename}')">Restore</button>
+            <button class="backup-btn delete" onclick="deleteBackup('${b.filename}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (e) {
+    backupList.innerHTML = '<div style="color: #ff4444; font-size: 0.9rem; padding: 8px;">Failed to load backups.</div>';
+  }
+}
+
+async function createBackup() {
+  createBackupBtn.disabled = true;
+  createBackupBtn.textContent = 'Creating...';
+  
+  try {
+    const res = await fetch('/api/backups/create', { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Backup created successfully', 'success');
+      refreshBackups();
+    } else {
+      showToast('Backup failed: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (e) {
+    showToast('Backup request failed', 'error');
+  } finally {
+    createBackupBtn.disabled = false;
+    createBackupBtn.textContent = '+ Create Backup';
+  }
+}
+
+async function restoreBackup(filename) {
+  if (!confirm('Are you sure you want to restore ' + filename + '? This will overwrite current data!')) return;
+  
+  try {
+    const res = await fetch('/api/backups/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename })
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Restored successfully', 'success');
+    } else {
+      showToast('Restore failed: ' + data.detail || data.error, 'error');
+    }
+  } catch (e) {
+    showToast('Restore request failed', 'error');
+  }
+}
+
+async function deleteBackup(filename) {
+  if (!confirm('Start deletion of ' + filename + '?')) return;
+  
+  try {
+    const res = await fetch(`/api/backups/${filename}`, { method: 'DELETE' });
+    const data = await res.json();
+    
+    if (data.success) {
+      showToast('Backup deleted', 'success');
+      refreshBackups();
+    } else {
+      showToast('Delete failed', 'error');
+    }
+  } catch (e) {
+    showToast('Delete request failed', 'error');
+  }
+}
+
+setupBackups();
