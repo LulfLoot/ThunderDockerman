@@ -140,15 +140,16 @@ body {
 }
 
 .app.nav-collapsed .nav-sidebar {
-  padding: 20px 12px;
+  padding: 20px 8px;
+  align-items: center;
 }
-
 
 /* === Navigation Tabs === */
 .nav-tabs {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
 .nav-tab {
@@ -192,8 +193,7 @@ body {
 }
 
 .app.nav-collapsed .nav-tab-text {
-  opacity: 0;
-  width: 0;
+  display: none;
 }
 
 .nav-badge {
@@ -209,16 +209,33 @@ body {
 
 .app.nav-collapsed .nav-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  padding: 1px 5px;
-  font-size: 0.65rem;
+  top: 2px;
+  right: 2px;
+  padding: 1px 4px;
+  font-size: 0.6rem;
+  margin: 0;
 }
 
 .app.nav-collapsed .nav-tab {
+  width: 44px;
+  height: 44px;
+  padding: 0;
   justify-content: center;
-  padding: 12px;
   position: relative;
+  border-left: none;
+}
+
+.app.nav-collapsed .nav-tab.active {
+  border-left: none;
+  border-bottom: 3px solid var(--accent);
+}
+
+.app.nav-collapsed .logo {
+  justify-content: center;
+}
+
+.app.nav-collapsed .logo-icon {
+  margin: 0;
 }
 
 /* === Main Content === */
