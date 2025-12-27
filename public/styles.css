@@ -425,9 +425,11 @@ a.mod-name:hover {
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
 
 .mod-footer {
   display: flex;
@@ -978,12 +980,88 @@ a.mod-name:hover {
 }
 
 /* === Responsive === */
+
+/* Mobile menu button - hidden by default, shown on small screens */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  width: 44px;
+  height: 44px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+.mobile-menu-btn:hover {
+  background: var(--accent-hover);
+}
+
+/* Overlay for mobile menu */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+}
+
+.mobile-overlay.active {
+  display: block;
+}
+
+/* Medium screens - hide right sidebar, keep nav */
 @media (max-width: 1200px) {
+  .app {
+    grid-template-columns: 200px 1fr;
+  }
+
+  .right-sidebar {
+    display: none;
+  }
+}
+
+/* Small screens - collapsible left nav */
+@media (max-width: 900px) {
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .app {
     grid-template-columns: 1fr;
   }
 
-  .nav-sidebar,
+  .nav-sidebar {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    width: 240px;
+    height: 100%;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    overflow-y: auto;
+  }
+
+  .nav-sidebar.mobile-open {
+    left: 0;
+  }
+
+  .main {
+    padding-top: 70px; /* Space for mobile menu button */
+  }
+
   .right-sidebar {
     display: none;
   }
@@ -996,5 +1074,36 @@ a.mod-name:hover {
 
   .server-controls-row {
     flex-direction: column;
+  }
+
+  .mod-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .installed-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .view-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions button {
+    flex: 1;
+  }
+
+  .mobile-menu-btn {
+    top: 12px;
+    left: 12px;
+    width: 40px;
+    height: 40px;
   }
 }

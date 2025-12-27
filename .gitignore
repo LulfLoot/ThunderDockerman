@@ -16,3 +16,6 @@ mod-manager-data/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Development notes
+automation.md

@@ -635,7 +635,10 @@ async function init() {
 
 // Event Listeners - Navigation
 navTabs.forEach(tab => {
-  tab.addEventListener('click', () => switchView(tab.dataset.view));
+  tab.addEventListener('click', () => {
+    switchView(tab.dataset.view);
+    closeMobileMenu(); // Close menu after selection on mobile
+  });
 });
 
 // Event Listeners - Browse View
@@ -667,6 +670,26 @@ modalClose.addEventListener('click', closeConsoleModal);
 consoleModal.addEventListener('click', (e) => {
   if (e.target === consoleModal) closeConsoleModal();
 });
+
+// Mobile Menu
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const mobileOverlay = document.getElementById('mobile-overlay');
+const navSidebar = document.querySelector('.nav-sidebar');
+
+function toggleMobileMenu() {
+  navSidebar.classList.toggle('mobile-open');
+  mobileOverlay.classList.toggle('active');
+  mobileMenuBtn.textContent = navSidebar.classList.contains('mobile-open') ? '✕' : '☰';
+}
+
+function closeMobileMenu() {
+  navSidebar.classList.remove('mobile-open');
+  mobileOverlay.classList.remove('active');
+  mobileMenuBtn.textContent = '☰';
+}
+
+mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+mobileOverlay.addEventListener('click', closeMobileMenu);
 
 // Refresh server status periodically
 setInterval(refreshServerStatus, 30000);
