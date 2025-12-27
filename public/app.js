@@ -826,7 +826,7 @@ async function refreshBackups() {
 
 async function createBackup() {
   createBackupBtn.disabled = true;
-  createBackupBtn.textContent = 'Creating...';
+  // createBackupBtn.textContent = '+'; // Keep text as +
   
   try {
     const res = await fetch('/api/backups/create', { method: 'POST' });
@@ -842,7 +842,7 @@ async function createBackup() {
     showToast('Backup request failed', 'error');
   } finally {
     createBackupBtn.disabled = false;
-    createBackupBtn.textContent = '+ Create Backup';
+    // createBackupBtn.textContent = '+';
   }
 }
 
