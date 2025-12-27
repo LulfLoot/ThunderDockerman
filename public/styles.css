@@ -74,15 +74,15 @@ body {
   padding: 20px 14px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   transition: width 0.3s ease, padding 0.3s ease;
   overflow: hidden;
 }
 
 .nav-sidebar .nav-collapse-btn {
-  margin-top: auto;
-  width: 100%;
-  padding: 12px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -783,9 +783,9 @@ a.mod-name:hover {
 }
 
 .right-sidebar .sidebar-toggle {
-  margin-top: auto;
-  width: 100%;
-  padding: 12px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -808,6 +808,7 @@ a.mod-name:hover {
 }
 
 .right-sidebar.collapsed .sidebar-content {
+
   display: none;
 }
 
