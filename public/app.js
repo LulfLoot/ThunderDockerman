@@ -186,6 +186,8 @@ const navCollapseBtn = document.getElementById('nav-collapse-btn');
 function toggleNavSidebar() {
   navCollapsed = !navCollapsed;
   appEl.classList.toggle('nav-collapsed', navCollapsed);
+  // Arrow points in actionable direction: ‹ to collapse (close), › to expand (open)
+  navCollapseBtn.textContent = navCollapsed ? '›' : '‹';
   navCollapseBtn.title = navCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
 }
 
@@ -194,6 +196,8 @@ function toggleRightSidebar() {
   rightSidebarVisible = !rightSidebarVisible;
   rightSidebar.classList.toggle('collapsed', !rightSidebarVisible);
   appEl.classList.toggle('sidebar-hidden', !rightSidebarVisible);
+  // Arrow points in actionable direction: › to collapse (close), ‹ to expand (open)
+  sidebarToggle.textContent = rightSidebarVisible ? '›' : '‹';
   sidebarToggle.title = rightSidebarVisible ? 'Hide sidebar' : 'Show sidebar';
 }
 
