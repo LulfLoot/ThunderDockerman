@@ -1,0 +1,54 @@
+# ThunderModMan - Example Docker Compose Configuration
+# Copy this file to docker-compose.yml and customize for your setup
+#
+# Usage:
+#   cp example.docker-compose.yml docker-compose.yml
+#   cp example.env .env
+#   # Edit .env with your settings
+#   docker compose up -d
+
+services:
+  # Valheim game server with BepInEx mod support
+  valheim:
+    image: mbround18/valheim:latest
+    container_name: valheim-server
+    ports:
+      - "2456:2456/udp"
+      - "2457:2457/udp"
+      - "2458:2458/udp"
+    volumes:
+      - ./valheim-data:/home/steam/valheim
+      - ./mods:/home/steam/valheim/BepInEx/plugins
+    environment:
+      - TZ=${TZ:-UTC}
+      - NAME=${SERVER_NAME:-My Valheim Server}
+      - WORLD=${WORLD_NAME:-MyWorld}
+      - PASSWORD=${SERVER_PASSWORD:-changeme}
+      - TYPE=BepInEx
+      - AUTO_UPDATE=1
+      - SCHEDULED_RESTART=0 5 * * *  # Restarts server at 5AM daily
+      - AUTO_BACKUP=1                # Ensures you never lose data
+      - BACKUP_ON_STOP=1             # Forces a backup if you manually stop it
+    restart: unless-stopped
+
+  # ThunderModMan - Web-based mod manager
+  thundermodman:
+    build: .
+    container_name: thundermodman
+    ports:
+      - "${PORT:-9876}:9876"
+    volumes:
+      # Shared mods directory with valheim
+      - ./mods:/mods
+      # Persistent data for installed mods tracking
+      - ./mod-manager-data:/data
+      # Docker socket for optional server restart feature
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PORT=9876
+      - MODS_DIR=/mods
+      - DATA_DIR=/data
+      - RESTART_CONTAINER=${RESTART_CONTAINER:-valheim-server}
+    depends_on:
+      - valheim
+    restart: unless-stopped

@@ -14,99 +14,192 @@
   </head>
   <body>
     <div class="app">
-      <!-- Sidebar -->
-      <aside class="sidebar">
+      <!-- Left Navigation Sidebar -->
+      <aside class="nav-sidebar">
         <div class="logo">
           <div class="logo-icon">⚡</div>
           <span>ThunderModMan</span>
         </div>
 
-        <div class="community-select">
-          <label for="community">Game Community</label>
-          <select id="community">
-            <option value="">Loading...</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label for="sort-select">Sort By</label>
-          <select id="sort-select">
-            <option value="last-updated">Last Updated</option>
-            <option value="name">Name (A-Z)</option>
-            <option value="downloads">Downloads</option>
-            <option value="rating">Rating</option>
-          </select>
-        </div>
-
-        <div class="search-box">
-          <input type="text" id="search" placeholder="Search mods..." />
-        </div>
-
-        <div class="category-section">
-          <div class="category-header">
-            <span>Categories</span> <!-- Removed toggle button for simplicity -->
-          </div>
-          <div id="category-filters" class="category-filters">
-            <!-- Populated by JS -->
-          </div>
-        </div>
-
-        <div class="stats">
-          <div class="stat-row">
-            <span class="stat-label">Available Mods</span>
-            <span class="stat-value" id="total-mods">-</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">Installed</span>
-            <span class="stat-value" id="installed-count">0</span>
-          </div>
-        </div>
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-view="browse">
+            <span class="nav-icon">📦</span>
+            <span>Browse</span>
+          </button>
+          <button class="nav-tab" data-view="installed">
+            <span class="nav-icon">✓</span>
+            <span>Installed</span>
+            <span class="nav-badge" id="nav-installed-badge">0</span>
+          </button>
+          <button class="nav-tab" data-view="server">
+            <span class="nav-icon">🖥️</span>
+            <span>Server</span>
+          </button>
+        </nav>
       </aside>
 
-      <!-- Main Content -->
+      <!-- Main Content Area -->
       <main class="main">
-        <header class="main-header">
-          <h1>Available Mods</h1>
-          <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
-        </header>
+        <!-- Browse View -->
+        <div class="view active" id="browse-view">
+          <header class="view-header">
+            <h1>Available Mods</h1>
+            <div class="header-actions">
+              <button class="filter-toggle-btn" id="filter-toggle-btn">
+                🔽 Filters
+              </button>
+              <button class="refresh-btn" id="refresh-btn">↻ Refresh</button>
+            </div>
+          </header>
 
-        <div id="mod-container">
-          <div class="empty-state">
-            <div class="empty-icon">📦</div>
-            <p>Select a game community to browse mods</p>
+          <!-- Collapsible Filter Dropdown -->
+          <div class="filter-dropdown" id="filter-dropdown">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label for="community">Game Community</label>
+                <select id="community">
+                  <option value="">Loading...</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="sort-select">Sort By</label>
+                <select id="sort-select">
+                  <option value="last-updated">Last Updated</option>
+                  <option value="name">Name (A-Z)</option>
+                  <option value="downloads">Downloads</option>
+                  <option value="rating">Rating</option>
+                </select>
+              </div>
+              <div class="filter-group search-group">
+                <label for="search">Search</label>
+                <input type="text" id="search" placeholder="Search mods..." />
+              </div>
+            </div>
+            <div class="category-section">
+              <div class="category-header">
+                <span>Categories</span>
+              </div>
+              <div id="category-filters" class="category-filters">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+            <div class="filter-stats">
+              <span class="stat-label">Available Mods:</span>
+              <span class="stat-value" id="total-mods">-</span>
+              <span class="stat-divider">|</span>
+              <span class="stat-label">Installed:</span>
+              <span class="stat-value" id="installed-count">0</span>
+            </div>
+          </div>
+
+          <div id="mod-container">
+            <div class="empty-state">
+              <div class="empty-icon">📦</div>
+              <p>Select a game community to browse mods</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Installed View -->
+        <div class="view" id="installed-view">
+          <header class="view-header">
+            <h1>Installed Mods</h1>
+            <span class="installed-count-badge" id="installed-badge">0</span>
+          </header>
+
+          <div class="installed-grid" id="installed-list">
+            <div class="empty-state">
+              <div class="empty-icon">🎮</div>
+              <p>No mods installed yet</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Server View -->
+        <div class="view" id="server-view">
+          <header class="view-header">
+            <h1>Server Management</h1>
+          </header>
+
+          <div class="server-status-card" id="server-status-card">
+            <div class="status-indicator">
+              <span class="status-dot" id="server-status-dot"></span>
+              <span class="status-text" id="server-status-text"
+                >Server: Unknown</span
+              >
+            </div>
+            <div class="server-info" id="server-info">
+              <!-- Uptime info populated by JS -->
+            </div>
+          </div>
+
+          <div class="server-controls-row">
+            <button class="server-btn start-btn" id="start-server-btn">
+              ▶ Start
+            </button>
+            <button class="server-btn stop-btn" id="stop-server-btn">
+              ⬛ Stop
+            </button>
+            <button class="server-btn restart-btn" id="restart-server-btn">
+              🔄 Restart
+            </button>
+          </div>
+
+          <div class="console-section">
+            <div class="console-header">
+              <h3>Console Output</h3>
+            </div>
+            <div class="inline-console" id="inline-console">
+              <pre id="inline-console-output">Loading logs...</pre>
+            </div>
           </div>
         </div>
       </main>
 
-      <!-- Installed Sidebar -->
-      <aside class="installed-sidebar">
-        <header class="installed-header">
-          <h2>Installed Mods</h2>
-          <span class="installed-count" id="installed-badge">0</span>
-        </header>
+      <!-- Right Sidebar (Server Status - hideable) -->
+      <aside class="right-sidebar" id="right-sidebar">
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Hide Sidebar">
+          ▶
+        </button>
 
-        <div class="installed-list" id="installed-list">
-          <div class="empty-state">
-            <div class="empty-icon">🎮</div>
-            <p>No mods installed yet</p>
-          </div>
-        </div>
+        <div class="sidebar-content">
+          <h3>Server Status</h3>
 
-        <!-- Server Controls -->
-        <div class="server-controls">
-          <div class="server-status" id="server-status">
+          <div class="server-status" id="sidebar-server-status">
             <span class="status-dot"></span>
             <span class="status-text">Server: Unknown</span>
           </div>
-          <button class="console-btn" id="console-btn">📋 View Console</button>
-          <button class="refresh-btn" id="restart-server-btn" style="width: 100%">
+
+          <button class="sidebar-btn" id="view-console-btn">
+            📋 View Console
+          </button>
+          <button class="sidebar-btn" id="quick-restart-btn">
             🔄 Restart Server
           </button>
         </div>
       </aside>
     </div>
 
-    <!-- Console Modal -->
+    <!-- Confirmation Modal -->
+    <div class="modal" id="confirm-modal">
+      <div class="modal-content confirm-modal-content">
+        <div class="modal-header">
+          <h3>Confirm Uninstall</h3>
+          <button class="modal-close" id="confirm-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p id="confirm-message">
+            Are you sure you want to uninstall this mod?
+          </p>
+        </div>
+        <div class="modal-footer confirm-actions">
+          <button class="cancel-btn" id="confirm-cancel">Cancel</button>
+          <button class="danger-btn" id="confirm-uninstall">Uninstall</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Console Modal (legacy - for sidebar quick access) -->
     <div class="modal" id="console-modal">
       <div class="modal-content">
         <div class="modal-header">
@@ -116,7 +209,6 @@
         <div class="modal-body">
           <pre id="console-output">Loading logs...</pre>
         </div>
-      </div>
       </div>
     </div>
 

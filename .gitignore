@@ -1,5 +1,11 @@
+# Dependencies
 node_modules/
+
+# User configuration (use example.* files as templates)
 .env
+docker-compose.yml
+
+# Logs
 *.log
 
 # Data directories (created at runtime)
@@ -10,5 +16,3 @@ mod-manager-data/
 # OS files
 .DS_Store
 Thumbs.db
-DEPLOYMENT.md
-automation.md

@@ -1,28 +1,64 @@
 // State
 let currentCommunity = '';
+let currentView = 'browse';
 let packages = [];
 let installedMods = [];
+let filterDropdownOpen = false;
+let rightSidebarVisible = true;
+let pendingUninstall = null;
+let activeCategories = new Set();
 
-// DOM Elements
+// DOM Elements - Navigation
+const navTabs = document.querySelectorAll('.nav-tab');
+const views = document.querySelectorAll('.view');
+const navInstalledBadge = document.getElementById('nav-installed-badge');
+
+// DOM Elements - Browse View
 const communitySelect = document.getElementById('community');
 const searchInput = document.getElementById('search');
 const modContainer = document.getElementById('mod-container');
-const installedList = document.getElementById('installed-list');
 const totalModsEl = document.getElementById('total-mods');
 const installedCountEl = document.getElementById('installed-count');
-const installedBadgeEl = document.getElementById('installed-badge');
 const refreshBtn = document.getElementById('refresh-btn');
-const restartServerBtn = document.getElementById('restart-server-btn');
-const consoleBtn = document.getElementById('console-btn');
-const consoleModal = document.getElementById('console-modal');
-const modalClose = document.getElementById('modal-close');
-const consoleOutput = document.getElementById('console-output');
-// Removed: const refreshLogsBtn = document.getElementById('refresh-logs-btn');
-const serverStatusEl = document.getElementById('server-status');
+const filterToggleBtn = document.getElementById('filter-toggle-btn');
+const filterDropdown = document.getElementById('filter-dropdown');
 const sortSelect = document.getElementById('sort-select');
 const categoryFilters = document.getElementById('category-filters');
 
-let activeCategories = new Set();
+// DOM Elements - Installed View
+const installedList = document.getElementById('installed-list');
+const installedBadgeEl = document.getElementById('installed-badge');
+
+// DOM Elements - Server View
+const serverStatusCard = document.getElementById('server-status-card');
+const serverStatusDot = document.getElementById('server-status-dot');
+const serverStatusText = document.getElementById('server-status-text');
+const serverInfo = document.getElementById('server-info');
+const startServerBtn = document.getElementById('start-server-btn');
+const stopServerBtn = document.getElementById('stop-server-btn');
+const restartServerBtn = document.getElementById('restart-server-btn');
+const inlineConsole = document.getElementById('inline-console');
+const inlineConsoleOutput = document.getElementById('inline-console-output');
+
+// DOM Elements - Right Sidebar
+const rightSidebar = document.getElementById('right-sidebar');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const sidebarServerStatus = document.getElementById('sidebar-server-status');
+const viewConsoleBtn = document.getElementById('view-console-btn');
+const quickRestartBtn = document.getElementById('quick-restart-btn');
+
+// DOM Elements - Modals
+const confirmModal = document.getElementById('confirm-modal');
+const confirmMessage = document.getElementById('confirm-message');
+const confirmCancel = document.getElementById('confirm-cancel');
+const confirmUninstallBtn = document.getElementById('confirm-uninstall');
+const confirmModalClose = document.getElementById('confirm-modal-close');
+
+const consoleModal = document.getElementById('console-modal');
+const consoleOutput = document.getElementById('console-output');
+const modalClose = document.getElementById('modal-close');
+
+const appEl = document.querySelector('.app');
 
 // API Functions
 async function fetchCommunities() {
@@ -66,6 +102,16 @@ async function uninstallMod(fullName) {
   return res.json();
 }
 
+async function startServer() {
+  const res = await fetch('/api/start-server', { method: 'POST' });
+  return res.json();
+}
+
+async function stopServer() {
+  const res = await fetch('/api/stop-server', { method: 'POST' });
+  return res.json();
+}
+
 async function restartServer() {
   const res = await fetch('/api/restart-server', { method: 'POST' });
   return res.json();
@@ -94,6 +140,56 @@ function showToast(message, type = 'info') {
     toast.style.transform = 'translateX(100px)';
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+// View Navigation
+function switchView(view) {
+  currentView = view;
+  
+  // Update nav tabs
+  navTabs.forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.view === view);
+  });
+  
+  // Update views
+  views.forEach(v => {
+    v.classList.toggle('active', v.id === `${view}-view`);
+  });
+  
+  // Handle right sidebar visibility
+  if (view === 'server') {
+    appEl.classList.add('server-view-active');
+    rightSidebar.classList.add('hidden');
+  } else {
+    appEl.classList.remove('server-view-active');
+    if (rightSidebarVisible) {
+      rightSidebar.classList.remove('hidden');
+      appEl.classList.remove('sidebar-hidden');
+    }
+  }
+  
+  // Start console polling if on server view
+  if (view === 'server') {
+    startInlineConsolePoll();
+  } else {
+    stopInlineConsolePoll();
+  }
+}
+
+// Filter Dropdown
+function toggleFilterDropdown() {
+  filterDropdownOpen = !filterDropdownOpen;
+  filterDropdown.classList.toggle('open', filterDropdownOpen);
+  filterToggleBtn.classList.toggle('active', filterDropdownOpen);
+  filterToggleBtn.textContent = filterDropdownOpen ? '🔼 Filters' : '🔽 Filters';
+}
+
+// Right Sidebar Toggle
+function toggleRightSidebar() {
+  rightSidebarVisible = !rightSidebarVisible;
+  rightSidebar.classList.toggle('hidden', !rightSidebarVisible);
+  appEl.classList.toggle('sidebar-hidden', !rightSidebarVisible);
+  sidebarToggle.textContent = rightSidebarVisible ? '▶' : '◀';
 }
 
 // Render Functions
@@ -132,7 +228,7 @@ function renderModGrid(mods) {
               </div>
               <button class="install-btn ${isInstalled ? 'installed' : ''}" 
                       data-fullname="${pkg.fullName}"
-                      ${isInstalled ? 'disabled' : ''}>
+                      data-name="${pkg.name}">
                 ${isInstalled ? '✓ Installed' : 'Install'}
               </button>
             </div>
@@ -143,16 +239,25 @@ function renderModGrid(mods) {
   `;
 
   // Add click handlers
-  modContainer.querySelectorAll('.install-btn:not(.installed)').forEach(btn => {
-    btn.addEventListener('click', handleInstall);
+  modContainer.querySelectorAll('.install-btn').forEach(btn => {
+    if (btn.classList.contains('installed')) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showUninstallConfirm(btn.dataset.fullname, btn.dataset.name);
+      });
+    } else {
+      btn.addEventListener('click', handleInstall);
+    }
   });
 }
 
 function renderInstalledMods() {
-  installedCountEl.textContent = installedMods.length;
-  installedBadgeEl.textContent = installedMods.length;
+  const count = installedMods.length;
+  installedCountEl.textContent = count;
+  installedBadgeEl.textContent = count;
+  navInstalledBadge.textContent = count;
 
-  if (!installedMods.length) {
+  if (!count) {
     installedList.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🎮</div>
@@ -169,44 +274,16 @@ function renderInstalledMods() {
         <div class="installed-name">${mod.name}</div>
         <div class="installed-version">v${mod.version}</div>
       </div>
-      <button class="uninstall-btn" data-fullname="${mod.fullName}">Remove</button>
+      <button class="uninstall-btn" data-fullname="${mod.fullName}" data-name="${mod.name}">Remove</button>
     </div>
   `).join('');
 
   // Add click handlers
   installedList.querySelectorAll('.uninstall-btn').forEach(btn => {
-    btn.addEventListener('click', handleUninstall);
+    btn.addEventListener('click', () => {
+      showUninstallConfirm(btn.dataset.fullname, btn.dataset.name);
+    });
   });
-}
-
-// Event Handlers
-async function handleCommunityChange() {
-  currentCommunity = communitySelect.value;
-  if (!currentCommunity) return;
-
-  modContainer.innerHTML = `
-    <div class="loading">
-      <div class="loading-spinner"></div>
-      <p>Loading mods...</p>
-    </div>
-  `;
-
-  try {
-    packages = await fetchPackages(currentCommunity);
-    // Extract unique categories
-    const allCategories = new Set();
-    packages.forEach(p => p.categories?.forEach(c => allCategories.add(c)));
-    
-    // Reset active filters
-    activeCategories.clear();
-    
-    renderCategoryFilters(Array.from(allCategories).sort());
-
-    // Apply current sort/filter (default)
-    handleSearch();
-  } catch (e) {
-    showToast('Failed to load mods', 'error');
-  }
 }
 
 function renderCategoryFilters(categories) {
@@ -225,9 +302,73 @@ function renderCategoryFilters(categories) {
         activeCategories.add(cat);
       }
       handleSearch();
-      renderCategoryFilters(categories); // Re-render to update active state
+      renderCategoryFilters(categories);
     });
   });
+}
+
+// Uninstall Confirmation
+function showUninstallConfirm(fullName, modName) {
+  pendingUninstall = { fullName, modName };
+  confirmMessage.textContent = `Are you sure you want to uninstall "${modName}"?`;
+  confirmModal.classList.add('open');
+}
+
+function hideUninstallConfirm() {
+  pendingUninstall = null;
+  confirmModal.classList.remove('open');
+}
+
+async function executeUninstall() {
+  if (!pendingUninstall) return;
+  
+  const { fullName, modName } = pendingUninstall;
+  hideUninstallConfirm();
+  
+  try {
+    const result = await uninstallMod(fullName);
+    if (result.success) {
+      showToast(`Removed ${modName}`, 'success');
+      await refreshInstalled();
+      handleSearch();
+    } else {
+      showToast('Uninstall failed', 'error');
+    }
+  } catch (e) {
+    showToast('Uninstall error', 'error');
+  }
+}
+
+// Event Handlers
+async function handleCommunityChange() {
+  currentCommunity = communitySelect.value;
+  if (!currentCommunity) return;
+
+  modContainer.innerHTML = `
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      <p>Loading mods...</p>
+    </div>
+  `;
+
+  try {
+    packages = await fetchPackages(currentCommunity);
+    totalModsEl.textContent = packages.length;
+    
+    // Extract unique categories
+    const allCategories = new Set();
+    packages.forEach(p => p.categories?.forEach(c => allCategories.add(c)));
+    
+    // Reset active filters
+    activeCategories.clear();
+    
+    renderCategoryFilters(Array.from(allCategories).sort());
+
+    // Apply current sort/filter (default)
+    handleSearch();
+  } catch (e) {
+    showToast('Failed to load mods', 'error');
+  }
 }
 
 async function handleSearch() {
@@ -238,8 +379,6 @@ async function handleSearch() {
   if (!currentCommunity) return;
 
   try {
-    // If no query and no filters, just show all (or client-side sort if optimizing)
-    // But since backend handles sort/filter, we always call searchPackages
     const results = await searchPackages(currentCommunity, query, sort, categories);
     renderModGrid(results);
   } catch (e) {
@@ -259,7 +398,7 @@ async function handleInstall(e) {
     if (result.results?.some(r => r.success)) {
       showToast(`Installed ${fullName}`, 'success');
       await refreshInstalled();
-      handleSearch(); // Refresh grid with current sort/filter
+      handleSearch();
     } else {
       showToast('Installation failed', 'error');
       btn.disabled = false;
@@ -272,31 +411,56 @@ async function handleInstall(e) {
   }
 }
 
-async function handleUninstall(e) {
-  const fullName = e.target.dataset.fullname;
+// Server Control Handlers
+async function handleStartServer() {
+  startServerBtn.disabled = true;
+  startServerBtn.textContent = 'Starting...';
   
   try {
-    const result = await uninstallMod(fullName);
+    const result = await startServer();
     if (result.success) {
-      showToast(`Removed ${fullName}`, 'success');
-      await refreshInstalled();
-      handleSearch(); // Refresh grid with current sort/filter
+      showToast('Server starting...', 'success');
+      await refreshServerStatus();
     } else {
-      showToast('Uninstall failed', 'error');
+      showToast(result.error || 'Start failed', 'error');
     }
   } catch (e) {
-    showToast('Uninstall error', 'error');
+    showToast('Start error', 'error');
   }
+  
+  startServerBtn.disabled = false;
+  startServerBtn.textContent = '▶ Start';
+}
+
+async function handleStopServer() {
+  stopServerBtn.disabled = true;
+  stopServerBtn.textContent = 'Stopping...';
+  
+  try {
+    const result = await stopServer();
+    if (result.success) {
+      showToast('Server stopping...', 'success');
+      await refreshServerStatus();
+    } else {
+      showToast(result.error || 'Stop failed', 'error');
+    }
+  } catch (e) {
+    showToast('Stop error', 'error');
+  }
+  
+  stopServerBtn.disabled = false;
+  stopServerBtn.textContent = '⬛ Stop';
 }
 
 async function handleRestartServer() {
   restartServerBtn.disabled = true;
-  restartServerBtn.textContent = '🔄 Restarting...';
+  restartServerBtn.textContent = 'Restarting...';
   
   try {
     const result = await restartServer();
     if (result.success) {
       showToast('Server restarting...', 'success');
+      await refreshServerStatus();
     } else {
       showToast(result.error || 'Restart failed', 'error');
     }
@@ -305,7 +469,7 @@ async function handleRestartServer() {
   }
   
   restartServerBtn.disabled = false;
-  restartServerBtn.textContent = '🔄 Restart Server';
+  restartServerBtn.textContent = '🔄 Restart';
 }
 
 async function refreshInstalled() {
@@ -322,6 +486,121 @@ function formatNumber(num) {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num.toString();
+}
+
+// Server Status
+async function refreshServerStatus() {
+  try {
+    const status = await fetchServerStatus();
+    
+    // Update server view
+    serverStatusDot.className = 'status-dot ' + (status.running ? 'running' : 'stopped');
+    serverStatusText.textContent = `Server: ${status.status}`;
+    
+    if (status.startedAt && status.running) {
+      const uptime = formatUptime(new Date(status.startedAt));
+      serverInfo.textContent = `Uptime: ${uptime}`;
+    } else {
+      serverInfo.textContent = '';
+    }
+    
+    // Update button states
+    startServerBtn.disabled = status.running;
+    stopServerBtn.disabled = !status.running;
+    
+    // Update sidebar status
+    const sidebarDot = sidebarServerStatus.querySelector('.status-dot');
+    const sidebarText = sidebarServerStatus.querySelector('.status-text');
+    sidebarDot.className = 'status-dot ' + (status.running ? 'running' : 'stopped');
+    sidebarText.textContent = `Server: ${status.status}`;
+    
+  } catch (e) {
+    // Server status unavailable
+    serverStatusText.textContent = 'Server: Unavailable';
+    serverInfo.textContent = '';
+  }
+}
+
+function formatUptime(startTime) {
+  const now = new Date();
+  const diff = now - startTime;
+  const hours = Math.floor(diff / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+// Console Logic
+let inlineConsolePollInterval = null;
+let isUserScrolledUp = false;
+
+function startInlineConsolePoll() {
+  refreshInlineConsoleLogs();
+  if (inlineConsolePollInterval) clearInterval(inlineConsolePollInterval);
+  inlineConsolePollInterval = setInterval(refreshInlineConsoleLogs, 2000);
+}
+
+function stopInlineConsolePoll() {
+  if (inlineConsolePollInterval) {
+    clearInterval(inlineConsolePollInterval);
+    inlineConsolePollInterval = null;
+  }
+}
+
+async function refreshInlineConsoleLogs() {
+  try {
+    const data = await fetchServerLogs();
+    
+    if (inlineConsoleOutput.textContent !== data.logs) {
+      inlineConsoleOutput.textContent = data.logs || 'No logs available';
+      
+      if (!isUserScrolledUp) {
+        inlineConsole.scrollTop = inlineConsole.scrollHeight;
+      }
+    }
+  } catch (e) {
+    inlineConsoleOutput.textContent = 'Failed to load logs: ' + e.message;
+  }
+}
+
+// Scroll detection for inline console
+inlineConsole.addEventListener('scroll', () => {
+  const scrollPos = inlineConsole.scrollTop + inlineConsole.clientHeight;
+  const scrollHeight = inlineConsole.scrollHeight;
+  const isAtBottom = scrollHeight - scrollPos < 50;
+  isUserScrolledUp = !isAtBottom;
+});
+
+// Legacy console modal (for sidebar quick access)
+let consolePollInterval;
+
+async function openConsoleModal() {
+  consoleModal.classList.add('open');
+  consoleOutput.textContent = 'Loading logs...';
+  
+  await refreshModalLogs();
+  
+  if (consolePollInterval) clearInterval(consolePollInterval);
+  consolePollInterval = setInterval(refreshModalLogs, 2000);
+}
+
+function closeConsoleModal() {
+  consoleModal.classList.remove('open');
+  if (consolePollInterval) {
+    clearInterval(consolePollInterval);
+    consolePollInterval = null;
+  }
+}
+
+async function refreshModalLogs() {
+  try {
+    const data = await fetchServerLogs();
+    consoleOutput.textContent = data.logs || 'No logs available';
+  } catch (e) {
+    consoleOutput.textContent = 'Failed to load logs: ' + e.message;
+  }
 }
 
 // Debounce search
@@ -354,95 +633,40 @@ async function init() {
   }
 }
 
-// Server Status
-async function refreshServerStatus() {
-  try {
-    const status = await fetchServerStatus();
-    const dot = serverStatusEl.querySelector('.status-dot');
-    const text = serverStatusEl.querySelector('.status-text');
-    
-    dot.className = 'status-dot ' + (status.running ? 'running' : 'stopped');
-    text.textContent = `Server: ${status.status}`;
-  } catch (e) {
-    // Server status unavailable
-  }
-}
-
-
-// Console Logic
-let consolePollInterval;
-let isUserScrolledUp = false;
-const consoleScrollContainer = document.querySelector('.modal-body');
-
-// Console Modal
-async function openConsole() {
-  consoleModal.classList.add('open');
-  consoleOutput.textContent = 'Loading logs...';
-  
-  // Reset scroll state on open
-  isUserScrolledUp = false;
-  
-  await refreshLogs();
-  
-  // Start polling
-  if (consolePollInterval) clearInterval(consolePollInterval);
-  consolePollInterval = setInterval(refreshLogs, 2000);
-}
-
-function closeConsole() {
-  consoleModal.classList.remove('open');
-  if (consolePollInterval) {
-    clearInterval(consolePollInterval);
-    consolePollInterval = null;
-  }
-}
-
-async function refreshLogs() {
-  try {
-    const data = await fetchServerLogs();
-    
-    // Check if content changed to avoid unnecessary DOM updates/jank
-    if (consoleOutput.textContent !== data.logs) {
-      consoleOutput.textContent = data.logs || 'No logs available';
-      
-      // Auto-scroll if user hasn't scrolled up
-      // We perform this check AFTER content update to ensure new scrollHeight is used
-      if (!isUserScrolledUp) {
-        consoleScrollContainer.scrollTop = consoleScrollContainer.scrollHeight;
-      }
-    }
-  } catch (e) {
-    consoleOutput.textContent = 'Failed to load logs: ' + e.message;
-  }
-}
-
-// Scroll detection on the container, not the output element
-consoleScrollContainer.addEventListener('scroll', () => {
-  const scrollPos = consoleScrollContainer.scrollTop + consoleScrollContainer.clientHeight;
-  const scrollHeight = consoleScrollContainer.scrollHeight;
-  
-  // If user is near bottom (within 50px), we consider them "at bottom"
-  const isAtBottom = scrollHeight - scrollPos < 50;
-  
-  if (isAtBottom) {
-    isUserScrolledUp = false;
-  } else {
-    isUserScrolledUp = true;
-  }
+// Event Listeners - Navigation
+navTabs.forEach(tab => {
+  tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
 
-
-// Event Listeners
+// Event Listeners - Browse View
 communitySelect.addEventListener('change', handleCommunityChange);
 refreshBtn.addEventListener('click', handleCommunityChange);
-restartServerBtn.addEventListener('click', handleRestartServer);
-consoleBtn.addEventListener('click', openConsole);
-modalClose.addEventListener('click', closeConsole);
-// Removed: refreshLogsBtn.addEventListener('click', refreshLogs);
-consoleModal.addEventListener('click', (e) => {
-  if (e.target === consoleModal) closeConsole();
-});
+filterToggleBtn.addEventListener('click', toggleFilterDropdown);
 sortSelect.addEventListener('change', handleSearch);
+
+// Event Listeners - Server View
+startServerBtn.addEventListener('click', handleStartServer);
+stopServerBtn.addEventListener('click', handleStopServer);
+restartServerBtn.addEventListener('click', handleRestartServer);
+
+// Event Listeners - Right Sidebar
+sidebarToggle.addEventListener('click', toggleRightSidebar);
+viewConsoleBtn.addEventListener('click', () => switchView('server'));
+quickRestartBtn.addEventListener('click', handleRestartServer);
+
+// Event Listeners - Confirmation Modal
+confirmCancel.addEventListener('click', hideUninstallConfirm);
+confirmModalClose.addEventListener('click', hideUninstallConfirm);
+confirmUninstallBtn.addEventListener('click', executeUninstall);
+confirmModal.addEventListener('click', (e) => {
+  if (e.target === confirmModal) hideUninstallConfirm();
+});
+
+// Event Listeners - Console Modal
+modalClose.addEventListener('click', closeConsoleModal);
+consoleModal.addEventListener('click', (e) => {
+  if (e.target === consoleModal) closeConsoleModal();
+});
 
 // Refresh server status periodically
 setInterval(refreshServerStatus, 30000);

@@ -11,8 +11,8 @@ A lightweight, web-based mod manager for game servers. Browse and install mods f
 - 🔍 **Browse & search** – Find mods directly from Thunderstore
 - ⚡ **One-click install** – Automatic download and extraction to your server
 - 📦 **Dependency handling** – Installs required dependencies automatically
-- 🔄 **Server restart** – Restart your game server container after mod changes
-- 🎨 **Modern UI** – Dark theme with responsive design
+- 🔄 **Server control** – Start, stop, and restart your game server from the UI
+- 🎨 **Modern UI** – Dark theme with tabbed navigation and inline console
 
 ## Quick Start
 
@@ -33,28 +33,43 @@ Then open **http://localhost:9876** to manage mods.
 
 ### Option 2: With Example Valheim Server
 
-Clone the repo and use the included docker-compose:
+Clone the repo and set up your personal configuration:
 
 ```bash
 git clone https://github.com/<username>/thundermodman.git
 cd thundermodman
 
-# Edit docker-compose.yml to configure your server
+# Copy example configs to your personal configs
+cp example.env .env
+cp example.docker-compose.yml docker-compose.yml
+
+# Edit .env with your settings (server name, password, etc.)
+nano .env
+
+# Start the stack
 docker compose up -d
 ```
 
+> **Note:** Your personal `.env` and `docker-compose.yml` files are gitignored, so you can safely `git pull` updates without overwriting your settings.
+
 ## Configuration
 
-| Environment Variable | Default | Description                                                               |
-| -------------------- | ------- | ------------------------------------------------------------------------- |
-| `PORT`               | 9876    | Web UI port                                                               |
-| `MODS_DIR`           | /mods   | Directory to install mods (mount your game's BepInEx/plugins folder here) |
-| `DATA_DIR`           | /data   | Data directory for tracking installed mods                                |
-| `RESTART_CONTAINER`  | -       | (Optional) Container name to restart after mod changes                    |
+### Environment Variables
 
-### Enabling Server Restart
+| Variable            | Default           | Description                                |
+| ------------------- | ----------------- | ------------------------------------------ |
+| `PORT`              | 9876              | Web UI port                                |
+| `MODS_DIR`          | /mods             | Directory to install mods                  |
+| `DATA_DIR`          | /data             | Data directory for tracking installed mods |
+| `RESTART_CONTAINER` | -                 | Container name for server control          |
+| `SERVER_NAME`       | My Valheim Server | Game server display name                   |
+| `WORLD_NAME`        | MyWorld           | World/save name                            |
+| `SERVER_PASSWORD`   | changeme          | Server password                            |
+| `TZ`                | UTC               | Timezone                                   |
 
-To allow ThunderModMan to restart your game server after installing mods:
+### Enabling Server Control
+
+To allow ThunderModMan to start, stop, and restart your game server:
 
 ```bash
 docker run -d \
@@ -108,7 +123,11 @@ The server will start on http://localhost:9876
 | GET    | `/api/installed`                     | List installed mods  |
 | POST   | `/api/install`                       | Install a mod        |
 | DELETE | `/api/uninstall/:fullName`           | Uninstall a mod      |
+| POST   | `/api/start-server`                  | Start game server    |
+| POST   | `/api/stop-server`                   | Stop game server     |
 | POST   | `/api/restart-server`                | Restart game server  |
+| GET    | `/api/server-status`                 | Get server status    |
+| GET    | `/api/server-logs`                   | Get server logs      |
 
 ## License
 

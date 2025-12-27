@@ -140,6 +140,46 @@ app.post('/api/restart-server', async (req, res) => {
 });
 
 /**
+ * Start game server container
+ */
+app.post('/api/start-server', async (req, res) => {
+  const containerName = process.env.RESTART_CONTAINER;
+  if (!containerName) {
+    return res.status(400).json({ error: 'RESTART_CONTAINER not configured' });
+  }
+
+  try {
+    const Docker = require('dockerode');
+    const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    const container = docker.getContainer(containerName);
+    await container.start();
+    res.json({ success: true, message: `Started ${containerName}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * Stop game server container
+ */
+app.post('/api/stop-server', async (req, res) => {
+  const containerName = process.env.RESTART_CONTAINER;
+  if (!containerName) {
+    return res.status(400).json({ error: 'RESTART_CONTAINER not configured' });
+  }
+
+  try {
+    const Docker = require('dockerode');
+    const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    const container = docker.getContainer(containerName);
+    await container.stop();
+    res.json({ success: true, message: `Stopped ${containerName}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * Get server container status
  */
 app.get('/api/server-status', async (req, res) => {
