@@ -116,19 +116,21 @@ body {
   padding: 4px 6px;
   white-space: nowrap;
   overflow: hidden;
+  transition: padding 0.3s ease, gap 0.3s ease, width 0.3s ease;
 }
 
 .logo-text {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
 
 .app.nav-collapsed .logo-text {
-  display: none;
+  opacity: 0;
+  width: 0;
+  display: block; /* Restore display for animation */
 }
 
 .app.nav-collapsed .logo {
-  justify-content: center;
-  padding: 0;
+  padding: 4px 0 4px 2px; /* Manually center 44px icon in 48px space (2px left padding) */
   width: 100%;
   gap: 0;
 }
