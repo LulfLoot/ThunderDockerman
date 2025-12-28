@@ -11,7 +11,7 @@ A lightweight, web-based mod manager for game servers. Browse and install mods f
 - ♦ **Valheim Optimized** – The included Docker stack is configured specifically for Valheim.
 - ○ **Browse & Search** – Find mods directly from Thunderstore.
 - ↓ **One-click Install** – Automatic download and extraction to your server.
-- - **Dependency Handling** – Installs required dependencies automatically.
+- ○ **Dependency Handling** – Installs required dependencies automatically.
 - ↺ **Server Control** – Start, stop, and restart your game server from the UI. Auto-Stop setting will stop the server after x minutes of inactivity.
 - ≡ **Modern UI** – Dark theme with tabbed navigation and inline console.
 
@@ -27,7 +27,7 @@ This project was created with the assistance of Artificial Intelligence. While e
 
 ![Browse Mods](images/browse.png)
 
-### Managed Installed Mods
+### Manage Installed Mods
 
 ![Installed Mods](images/installed.png)
 
