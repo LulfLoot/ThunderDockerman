@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="images/logo.jpg" alt="ThunderModMan Logo" width="200"/>
-</p>
-
-# ThunderModMan
+# <img src="images/logo.jpg" alt="ThunderModMan Logo" width="50" style="vertical-align: middle;"/> ThunderModMan
 
 A lightweight, web-based mod manager for game servers. Browse and install mods from [Thunderstore](https://thunderstore.io) directly through your browser. Currently works out of the box only with Valheim.
 
